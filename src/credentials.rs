@@ -249,15 +249,17 @@ impl Credentials {
     }
 }
 
-/// If you haven't called [`Credentials::add_jwks_public_keys`] to manually add public keys,
-/// this method will download one for your google service account and one for the oauth related
-/// securetoken@system.gserviceaccount.com service account.
-pub async fn download_google_jwks(&mut self) -> Result<(), Error> {
-    if self.keys.pub_key.is_empty() {
-        let jwks = download_google_jwks(&self.client_email).await?;
-        self.add_jwks_public_keys(jwks);
-        let jwks = download_google_jwks("securetoken@system.gserviceaccount.com").await?;
-        self.add_jwks_public_keys(jwks);
+    /// If you haven't called [`Credentials::add_jwks_public_keys`] to manually add public keys,
+    /// this method will download one for your google service account and one for the oauth related
+    /// securetoken@system.gserviceaccount.com service account.
+    pub async fn download_google_jwks(&mut self) -> Result<(), Error> {
+        if self.keys.pub_key.is_empty() {
+            let jwks = download_google_jwks_async(&self.client_email).await?;
+            self.add_jwks_public_keys(jwks);
+            let jwks = download_google_jwks_async("securetoken@system.gserviceaccount.com").await?;
+            self.add_jwks_public_keys(jwks);
+        }
+        Ok(())
     }
     Ok(())
 }
