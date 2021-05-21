@@ -199,9 +199,9 @@ impl Credentials {
     /// securetoken@system.gserviceaccount.com service account.
     pub async fn download_google_jwks(&mut self) -> Result<(), Error> {
         if self.keys.pub_key.is_empty() {
-            let jwks = download_google_jwks(&self.client_email).await?;
+            let jwks = download_google_jwks_async(&self.client_email).await?;
             self.add_jwks_public_keys(jwks);
-            let jwks = download_google_jwks("securetoken@system.gserviceaccount.com").await?;
+            let jwks = download_google_jwks_async("securetoken@system.gserviceaccount.com").await?;
             self.add_jwks_public_keys(jwks);
         }
         Ok(())
