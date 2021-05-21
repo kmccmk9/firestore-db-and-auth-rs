@@ -10,7 +10,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::sync::Arc;
 
-use super::jwt::{create_jwt_encoded, download_google_jwks, verify_access_token, JWKSetDTO, JWT_AUDIENCE_IDENTITY};
+use super::jwt::{create_jwt_encoded, download_google_jwks, download_google_jwks_async, verify_access_token, JWKSetDTO, JWT_AUDIENCE_IDENTITY};
 use crate::errors::FirebaseError;
 
 type Error = super::errors::FirebaseError;
@@ -140,13 +140,13 @@ impl Credentials {
     ///
     /// Do not use this method if this is not desired, for example in cloud functions that require fast cold start times.
     /// See [`Credentials::add_jwks_public_keys`] and [`Credentials::new`] as alternatives.
-    pub fn from_file(credential_file: &str) -> Result<Self, Error> {
+    pub async fn from_file(credential_file: &str) -> Result<Self, Error> {
         let mut f = File::open(credential_file)?;
         let mut buffer = Vec::new();
         f.read_to_end(&mut buffer)?;
         let mut credentials: Credentials = serde_json::from_slice(buffer.as_slice())?;
         credentials.compute_secret()?;
-        credentials.download_google_jwks()?;
+        credentials.download_google_jwks().await?;
         Ok(credentials)
     }
 
@@ -197,11 +197,11 @@ impl Credentials {
     /// If you haven't called [`Credentials::add_jwks_public_keys`] to manually add public keys,
     /// this method will download one for your google service account and one for the oauth related
     /// securetoken@system.gserviceaccount.com service account.
-    pub fn download_google_jwks(&mut self) -> Result<(), Error> {
+    pub async fn download_google_jwks(&mut self) -> Result<(), Error> {
         if self.keys.pub_key.is_empty() {
-            let jwks = download_google_jwks(&self.client_email)?;
+            let jwks = download_google_jwks(&self.client_email).await?;
             self.add_jwks_public_keys(jwks);
-            let jwks = download_google_jwks("securetoken@system.gserviceaccount.com")?;
+            let jwks = download_google_jwks("securetoken@system.gserviceaccount.com").await?;
             self.add_jwks_public_keys(jwks);
         }
         Ok(())
