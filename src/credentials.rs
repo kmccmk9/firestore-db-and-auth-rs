@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::sync::Arc;
 
-use super::jwt::{create_jwt_encoded, download_google_jwks, verify_access_token, JWKSet, JWT_AUDIENCE_IDENTITY};
+use super::jwt::{create_jwt_encoded, download_google_jwks, download_google_jwks_async, verify_access_token, JWKSet, JWT_AUDIENCE_IDENTITY};
 use crate::errors::FirebaseError;
 use std::io::BufReader;
 
@@ -174,6 +174,23 @@ impl Credentials {
         Ok(())
     }
 
+    /// Create a [`Credentials`] object by reading and parsing a google-service-account json file.
+    ///
+    /// The public keys to verify generated tokens will be downloaded, for the given service account as well as
+    /// for "securetoken@system.gserviceaccount.com".
+    ///
+    /// Do not use this method if this is not desired, for example in cloud functions that require fast cold start times.
+    /// See [`Credentials::add_jwks_public_keys`] and [`Credentials::new`] as alternatives.
+    pub async fn from_file(credential_file: &str) -> Result<Self, Error> {
+        let mut f = File::open(credential_file)?;
+        let mut buffer = Vec::new();
+        f.read_to_end(&mut buffer)?;
+        let mut credentials: Credentials = serde_json::from_slice(buffer.as_slice())?;
+        credentials.compute_secret()?;
+        credentials.download_google_jwks().await?;
+        Ok(credentials)
+    }
+
     /// Find the secret in the jwt set that matches the given key id, if any.
     /// Used for jws validation
     pub fn decode_secret(&self, kid: &str) -> Option<Arc<biscuit::jws::Secret>> {
@@ -230,6 +247,19 @@ impl Credentials {
         self.keys.secret = Some(Arc::new(Secret::RsaKeyPair(Arc::new(key_pair))));
         Ok(())
     }
+}
+
+/// If you haven't called [`Credentials::add_jwks_public_keys`] to manually add public keys,
+/// this method will download one for your google service account and one for the oauth related
+/// securetoken@system.gserviceaccount.com service account.
+pub async fn download_google_jwks(&mut self) -> Result<(), Error> {
+    if self.keys.pub_key.is_empty() {
+        let jwks = download_google_jwks(&self.client_email).await?;
+        self.add_jwks_public_keys(jwks);
+        let jwks = download_google_jwks("securetoken@system.gserviceaccount.com").await?;
+        self.add_jwks_public_keys(jwks);
+    }
+    Ok(())
 }
 
 #[doc(hidden)]
