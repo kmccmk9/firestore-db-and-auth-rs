@@ -7,11 +7,11 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::BTreeMap;
 use std::fs::File;
+use std::io::Read;
 use std::sync::Arc;
 
-use super::jwt::{create_jwt_encoded, download_google_jwks, download_google_jwks_async, verify_access_token, JWKSet, JWT_AUDIENCE_IDENTITY};
+use super::jwt::{create_jwt_encoded, download_google_jwks_async, verify_access_token, JWKSet, JWT_AUDIENCE_IDENTITY};
 use crate::errors::FirebaseError;
-use std::io::BufReader;
 
 type Error = super::errors::FirebaseError;
 
@@ -118,12 +118,12 @@ impl Credentials {
     ///
     /// This is a convenience method, that reads in the given credentials file and acts otherwise the same as
     /// the [`Credentials::new`] method.
-    pub fn from_file(credential_file: &str) -> Result<Self, Error> {
-        let f = BufReader::new(File::open(credential_file)?);
-        let mut credentials: Credentials = serde_json::from_reader(f)?;
-        credentials.compute_secret()?;
-        Ok(credentials)
-    }
+    //pub fn from_file(credential_file: &str) -> Result<Self, Error> {
+    //    let f = BufReader::new(File::open(credential_file)?);
+    //    let mut credentials: Credentials = serde_json::from_reader(f)?;
+    //    credentials.compute_secret()?;
+    //    Ok(credentials)
+    //}
 
     /// Adds public-key JWKs to a credentials instance and returns it.
     ///
@@ -131,30 +131,6 @@ impl Credentials {
     /// This is a convenience method, you may also just use [`Credentials::add_jwks_public_keys`].
     pub fn with_jwkset(mut self, jwks: &JWKSet) -> Result<Credentials, Error> {
         self.add_jwks_public_keys(jwks);
-        self.verify()?;
-        Ok(self)
-    }
-
-    /// The public keys to verify generated tokens will be downloaded, for the given service account as well as
-    /// for "securetoken@system.gserviceaccount.com".
-    /// Do not use this option if additional downloads are not desired,
-    /// for example in cloud functions that require fast cold boot start times.
-    ///
-    /// You can use [`Credentials::add_jwks_public_keys`] to manually add/replace public keys later on.
-    ///
-    /// Example:
-    ///
-    /// Assuming that your firebase service account credentials file is called "service-account-test.json".
-    ///
-    /// ```no_run
-    /// use firestore_db_and_auth::{Credentials};
-    ///
-    /// let c: Credentials = Credentials::new(include_str!("../tests/service-account-test.json"))?
-    ///     .download_jwkset()?;
-    /// # Ok::<(), firestore_db_and_auth::errors::FirebaseError>(())
-    /// ```
-    pub fn download_jwkset(mut self) -> Result<Credentials, Error> {
-        self.download_google_jwks()?;
         self.verify()?;
         Ok(self)
     }
@@ -224,17 +200,6 @@ impl Credentials {
         }
     }
 
-    /// If you haven't called [`Credentials::add_jwks_public_keys`] to manually add public keys,
-    /// this method will download one for your google service account and one for the oauth related
-    /// securetoken@system.gserviceaccount.com service account.
-    pub fn download_google_jwks(&mut self) -> Result<(), Error> {
-        let jwks = download_google_jwks(&self.client_email)?;
-        self.add_jwks_public_keys(&JWKSet::new(&jwks)?);
-        let jwks = download_google_jwks("securetoken@system.gserviceaccount.com")?;
-        self.add_jwks_public_keys(&JWKSet::new(&jwks)?);
-        Ok(())
-    }
-    /// Compute the Rsa keypair by using the private_key of the credentials file.
     /// You must call this if you have manually created a credentials object.
     ///
     /// This is automatically invoked if you use [`Credentials::new`] or [`Credentials::from_file`].
@@ -247,21 +212,19 @@ impl Credentials {
         self.keys.secret = Some(Arc::new(Secret::RsaKeyPair(Arc::new(key_pair))));
         Ok(())
     }
-}
 
     /// If you haven't called [`Credentials::add_jwks_public_keys`] to manually add public keys,
     /// this method will download one for your google service account and one for the oauth related
     /// securetoken@system.gserviceaccount.com service account.
     pub async fn download_google_jwks(&mut self) -> Result<(), Error> {
         if self.keys.pub_key.is_empty() {
-            let jwks = download_google_jwks_async(&self.client_email).await?;
-            self.add_jwks_public_keys(jwks);
-            let jwks = download_google_jwks_async("securetoken@system.gserviceaccount.com").await?;
-            self.add_jwks_public_keys(jwks);
+            let jwks: String = download_google_jwks_async(&self.client_email).await?;
+            self.add_jwks_public_keys(&JWKSet::new(&jwks)?);
+            let jwks: String = download_google_jwks_async("securetoken@system.gserviceaccount.com").await?;
+            self.add_jwks_public_keys(&JWKSet::new(&jwks)?);
         }
         Ok(())
     }
-    Ok(())
 }
 
 #[doc(hidden)]
