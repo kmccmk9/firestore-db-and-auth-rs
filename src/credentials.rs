@@ -10,7 +10,11 @@ use std::fs::File;
 use std::io::Read;
 use std::sync::Arc;
 
+<<<<<<< HEAD
 use super::jwt::{create_jwt_encoded, download_google_jwks_async, verify_access_token, JWKSet, JWT_AUDIENCE_IDENTITY};
+=======
+use super::jwt::{create_jwt_encoded, download_google_jwks, download_google_jwks_async, verify_access_token, JWKSetDTO, JWT_AUDIENCE_IDENTITY};
+>>>>>>> ae21a2a39cb563e35f7f42fcfd3c5371f86a3cd4
 use crate::errors::FirebaseError;
 
 type Error = super::errors::FirebaseError;
