@@ -39,10 +39,10 @@ use rocket::{http::Status, request, Outcome, State};
 /// and access to the Firestore database.
 pub struct FirestoreAuthSessionGuard(pub sessions::user::Session);
 
-impl<'a, 'r> request::FromRequest<'a, 'r> for FirestoreAuthSessionGuard {
+impl<'r> request::FromRequest<'r> for FirestoreAuthSessionGuard {
     type Error = FirebaseError;
 
-    fn from_request(request: &'a request::Request<'r>) -> request::Outcome<Self, Self::Error> {
+    fn from_request(req: &'r request::Request<'_>) -> request::Outcome<Self, Self::Error> {
         let r = request
             .headers()
             .get_one("Authorization")
