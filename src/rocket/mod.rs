@@ -43,11 +43,11 @@ impl<'r> request::FromRequest<'r> for FirestoreAuthSessionGuard {
     type Error = FirebaseError;
 
     fn from_request(req: &'r request::Request<'_>) -> request::Outcome<Self, Self::Error> {
-        let r = request
+        let r = req
             .headers()
             .get_one("Authorization")
             .map(|f| f.to_owned())
-            .or(request.get_query_value("auth").and_then(|r| r.ok()));
+            .or(req.get_query_value("auth").and_then(|r| r.ok()));
         if r.is_none() {
             return Outcome::Forward(());
         }
@@ -58,7 +58,7 @@ impl<'r> request::FromRequest<'r> for FirestoreAuthSessionGuard {
         let bearer = &bearer[7..];
 
         // You MUST make the credentials object available as managed state to rocket!
-        let db = match request.guard::<State<Credentials>>() {
+        let db = match req.guard::<State<Credentials>>() {
             Outcome::Success(db) => db,
             _ => {
                 return Outcome::Failure((
