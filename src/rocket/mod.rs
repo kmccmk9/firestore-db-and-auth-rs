@@ -32,7 +32,7 @@
 use super::credentials::Credentials;
 use super::errors::FirebaseError;
 use super::sessions;
-use rocket::{http::Status, request, Outcome, State};
+use rocket::{http::Status, request, outcomes, State};
 
 /// Use this Rocket guard to secure a route for authenticated users only.
 /// Will return the associated session, that contains the used access token for further use
