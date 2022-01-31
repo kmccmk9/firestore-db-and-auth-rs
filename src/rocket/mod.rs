@@ -48,7 +48,7 @@ impl<'r> request::FromRequest<'r> for FirestoreAuthSessionGuard {
             .headers()
             .get_one("Authorization")
             .map(|f| f.to_owned())
-            .or(req.get_query_value("auth").and_then(|r| r.ok()));
+            .or(req.query_value("auth").and_then(|r| r.ok()));
         if r.is_none() {
             return Outcome::Forward(());
         }
@@ -60,7 +60,7 @@ impl<'r> request::FromRequest<'r> for FirestoreAuthSessionGuard {
 
         // You MUST make the credentials object available as managed state to rocket!
         let db = match req.guard::<State<Credentials>>() {
-            Outcome::Success(db) => db,
+            Outcome::Success(db); return db,
             _ => {
                 return Outcome::Failure((
                     Status::InternalServerError,
