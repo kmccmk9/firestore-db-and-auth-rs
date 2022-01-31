@@ -32,7 +32,7 @@
 use super::credentials::Credentials;
 use super::errors::FirebaseError;
 use super::sessions;
-use rocket::{http::Status, request, outcomes, State};
+use rocket::{http::Status, request, outcome, State};
 
 /// Use this Rocket guard to secure a route for authenticated users only.
 /// Will return the associated session, that contains the used access token for further use
@@ -49,19 +49,19 @@ impl<'r> request::FromRequest<'r> for FirestoreAuthSessionGuard {
             .map(|f| f.to_owned())
             .or(req.get_query_value("auth").and_then(|r| r.ok()));
         if r.is_none() {
-            return Outcome::Forward(());
+            return outcome::Forward(());
         }
         let bearer = r.unwrap();
         if !bearer.starts_with("Bearer ") {
-            return Outcome::Forward(());
+            return outcome::Forward(());
         }
         let bearer = &bearer[7..];
 
         // You MUST make the credentials object available as managed state to rocket!
         let db = match req.guard::<State<Credentials>>() {
-            Outcome::Success(db) => db,
+            outcome::Success(db) => db,
             _ => {
-                return Outcome::Failure((
+                return outcome::Failure((
                     Status::InternalServerError,
                     FirebaseError::Generic("Firestore credentials not set!"),
                 ))
@@ -70,8 +70,8 @@ impl<'r> request::FromRequest<'r> for FirestoreAuthSessionGuard {
 
         let session = sessions::user::Session::by_access_token(&db, bearer);
         if session.is_err() {
-            return Outcome::Forward(());
+            return outcome::Forward(());
         }
-        Outcome::Success(FirestoreAuthSessionGuard(session.unwrap()))
+        outcome::Success(FirestoreAuthSessionGuard(session.unwrap()))
     }
 }
