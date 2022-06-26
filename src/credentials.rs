@@ -237,20 +237,19 @@ pub fn doctest_credentials() -> Credentials {
         .expect("JWK public keys verification failed")
 }
 
-#[test]
-fn deserialize_credentials() {
+#[tokio::test]
+async fn deserialize_credentials() {
     let jwk_list = JWKSet::new(include_str!("../tests/service-account-test.jwks")).unwrap();
     let c: Credentials = Credentials::new(include_str!("../tests/service-account-test.json"))
         .expect("Failed to deserialize credentials")
-        .with_jwkset(&jwk_list)
-        .expect("JWK public keys verification failed");
+        .with_jwkset(&jwk_list).expect("JWK public keys verification failed");
     assert_eq!(c.api_key, "api_key");
 
     use std::path::PathBuf;
     let mut credential_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     credential_file.push("tests/service-account-test.json");
 
-    let c = Credentials::from_file(credential_file.to_str().unwrap())
+    let c = Credentials::from_file(credential_file.to_str().unwrap()).await
         .expect("Failed to open credentials file")
         .with_jwkset(&jwk_list)
         .expect("JWK public keys verification failed");

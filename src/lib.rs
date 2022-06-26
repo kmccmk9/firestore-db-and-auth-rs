@@ -1,4 +1,4 @@
-#![deny(warnings)]
+// #![deny(warnings)]
 #![cfg_attr(feature = "external_doc", feature(external_doc))]
 #![cfg_attr(feature = "external_doc", doc(include = "../readme.md"))]
 

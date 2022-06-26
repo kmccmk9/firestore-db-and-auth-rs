@@ -60,7 +60,7 @@ impl<'r> request::FromRequest<'r> for FirestoreAuthSessionGuard {
 
         // You MUST make the credentials object available as managed state to rocket!
         let db = match req.guard::<State<Credentials>>() {
-            Outcome::Success(db); return db,
+            Outcome::Success(db) => return db,
             _ => {
                 return Outcome::Failure((
                     Status::InternalServerError,

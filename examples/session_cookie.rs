@@ -10,7 +10,7 @@ fn main() -> Result<(), FirebaseError> {
 
     let mut credential_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     credential_file.push("firebase-service-account.json");
-    let mut cred = Credentials::from_file(credential_file.to_str().unwrap())?;
+    let mut cred = Credentials::from_file(credential_file.to_str().unwrap()).await?;
 
     // Only download the public keys once, and cache them.
     let jwkset = utils::from_cache_file(credential_file.with_file_name("cached_jwks.jwks").as_path(), &cred)?;
